@@ -2,8 +2,9 @@
 
 An operator workspace for grounded, auditable retail support decisions.
 
-Development is in progress. The current foundation provides a FastAPI service,
-PostgreSQL with pgvector, migrations, a React connection-status page and demo order lookup.
+The React workspace connects to FastAPI, PostgreSQL and a LangGraph worker. It
+supports order status enquiries and operator approval of simulated cancellations
+and returns. The current workflow uses a deterministic decision adapter.
 
 ## Run locally
 
@@ -45,6 +46,24 @@ a URL yourself. The API uses local demo credentials and scopes results to their 
 Set a separate random `DEMO_OPERATOR_TOKEN` in `.env` before starting Compose.
 The customer and operator each use their own bearer token. Open the interactive
 API docs at http://localhost:8000/docs to exercise the workflow.
+
+### Browser demo
+
+1. Seed the demo orders and configure `DEMO_CUSTOMER_TOKENS` and `DEMO_OPERATOR_TOKEN`
+   in `.env`. Recreate the API with `docker compose up -d api` after credential edits.
+2. Open http://localhost:8080 and select **Demo customer**. Connect using the
+   token for an order owner. The order picker shows that customer's orders and statuses.
+3. Ask for order status, choose a pending order to cancel, or choose a delivered
+   order and select items to return. Supply the message and confirm mutation details.
+4. Switch to **Operator** and connect with the separate operator token. Filter the
+   queue by **Awaiting approval**, select the ticket and inspect the cited policy.
+   Approve or reject the specific proposal. The ticket shows the outcome and activity.
+5. Switch back to **Demo customer** to see the updated ticket status and response.
+
+Tokens are held in browser memory until disconnect or page reload. Use locally
+generated demo credentials. This browser workspace is intended for the local shop.
+
+### API demo
 
 1. As the customer, use `POST /api/tickets` with a fresh UUID in `request_id`, a
    message, an intent (`status`, `cancel`, `return`, or `other`) and, if known,

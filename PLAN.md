@@ -7,7 +7,7 @@ Each milestone ends with relevant verification, diff review, a local commit when
 - [x] M2. Imported 24 orders from a pinned retail snapshot and added policy documents. Verified authenticated order access, cancellation/return rules and transactional replay protection against PostgreSQL.
 - [x] M3. Indexed four versioned policy sections in pgvector using an offline LangChain embeddings adapter. Verified ranked citations, repeat indexing and missing-evidence behavior through tests and live HTTP.
 - [x] M4. Implemented the order, policy and decision nodes in LangGraph, persisted checkpoints, PostgreSQL queue, exact operator approval and completion events. Verified retry, replay, restart and stale proposals.
-- [ ] M5. Build the React operator panel and demo intake form. Exercise principal flows through the UI and API.
+- [x] M5. Added the React operator queue, ticket review, decisions and demo customer intake. Verified order status, cancellation and return in Chrome against the real Compose API, worker and PostgreSQL.
 - [ ] M6. Provide importable n8n workflows for intake and completion. Verify authenticated webhooks, deduplication and credential placeholders.
 - [ ] M7. Add Foundry and LangSmith integration configuration and a 50-scenario evaluation suite. Run local evaluations and, only with credentials and budget, live checks. Record actual results.
 - [ ] M8. Prepare Bicep, container publishing/deployment workflow definitions with manual triggers, monitoring and operational instructions. Validate templates locally. Real resource creation remains a separately authorized milestone.

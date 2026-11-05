@@ -15,7 +15,7 @@
 
 ## Next step
 
-Proceed with M5. Build the React operator workspace against `/api/tickets`, `/api/tickets/{id}/operator`, and the proposal-bound decision endpoint. Add a demo customer form using the customer token and owned orders. Verify status, cancellation and return in the browser through the real API and PostgreSQL.
+Proceed with M6. Add authenticated n8n intake and completion workflows. Reuse customer-scoped request deduplication and the durable completion event, keep credentials out of workflow exports, and verify delivery and replay in local Compose.
 
 ## Verification log
 
@@ -59,3 +59,12 @@ Proceed with M5. Build the React operator workspace against `/api/tickets`, `/ap
 - `alembic upgrade head`, `alembic check`, checkpoint setup, Ruff, mypy and 24 pytest tests passed against PostgreSQL. The eight workflow tests include concurrent recovery, duplicate approval, authorization, clarification, bounded failure, successful return and stale approval.
 - A live HTTP smoke test through the Compose web proxy stopped the worker at the approval boundary, submitted the same approval twice while the worker was stopped, then restarted it. The order was cancelled at version 1 with exactly one action ledger entry and one completion event. Temporary records and credentials were cleaned up. API readiness passed after the test.
 - Completion events are persisted locally. n8n delivery, the operator UI and live Foundry generation remain later milestones.
+
+## M5 verification — 2026-11-05
+
+- M4 checkpoint `4e2fb8c` was verified locally and present on the tracking branch when M5 started.
+- Added separate React operator and customer views. Operators can filter the queue, review order facts and versioned policy excerpts, approve or reject proposals and see activity. Customers can submit requests, provide clarifications and see the outcome. Credentials remain in memory. Polling stops when a view is hidden.
+- Frontend lint, TypeScript and Vite production build passed. No new runtime dependencies were required.
+- Built and ran Compose. A fresh headless Chrome session submitted order status, cancellation and return via the customer form, inspected policy citations and used the operator filter and approval controls. PostgreSQL confirmed three completed tickets and exactly two simulated order changes. Temporary records and browser test credentials were removed.
+- Inspected operator and customer layouts at desktop and 390px mobile widths. No horizontal overflow or uncaught browser errors occurred in the tested flows. Playwright and screenshots are in ignored `.local` and were used for milestone verification.
+- Created ignored `.env` with random local demo credentials for `demo-007` (status), `demo-008` (pending cancellation) and `demo-021` (delivered return), plus a distinct operator token. These are local demo accounts. Model decisions still use the offline adapter.
