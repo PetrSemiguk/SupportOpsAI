@@ -1,0 +1,45 @@
+# Local credentials and environment
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+.azure/
+.secrets/
+
+# Dependencies and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+node_modules/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage/
+playwright-report/
+test-results/
+
+# Downloaded data, execution logs and local state
+data/raw/
+data/cache/
+data/local/
+*.log
+logs/
+.n8n/
+.local/
+work/
+*.sqlite
+*.sqlite3
+*.db
+
+# Editor and OS files
+.idea/
+.DS_Store
+Thumbs.db
