@@ -9,6 +9,7 @@ from supportops.config import Settings
 from supportops.database import check_database, create_database_engine
 from supportops.orders_api import router as orders_router
 from supportops.policies_api import router as policies_router
+from supportops.tickets_api import router as tickets_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -27,6 +28,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.state.settings = configuration
     application.include_router(orders_router)
     application.include_router(policies_router)
+    application.include_router(tickets_router)
 
     @application.get("/api/health/live")
     def live() -> dict[str, str]:

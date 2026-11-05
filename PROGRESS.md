@@ -15,7 +15,7 @@
 
 ## Next step
 
-Proceed with M4. Build the ticket lifecycle, three-node agent workflow and durable worker using LangGraph checkpoints and PostgreSQL. Bind operator approval to the exact proposal and reuse the order version and action ledger to revalidate and deduplicate writes. Test restart, duplicate delivery and stale approval. Live Foundry calls remain subject to credentials and budget.
+Proceed with M5. Build the React operator workspace against `/api/tickets`, `/api/tickets/{id}/operator`, and the proposal-bound decision endpoint. Add a demo customer form using the customer token and owned orders. Verify status, cancellation and return in the browser through the real API and PostgreSQL.
 
 ## Verification log
 
@@ -49,3 +49,13 @@ Proceed with M4. Build the ticket lifecycle, three-node agent workflow and durab
 - Migration and `alembic check` passed. Ruff, mypy and 16 pytest tests passed against PostgreSQL. Tests verify three ranked policy matches, three missing-evidence queries and repeat indexing.
 - `docker compose up --build -d --wait` succeeded. Through the running frontend proxy, the cancellation query returned `data/policies/retail.md#cancellation` and an unrelated query returned zero excerpts.
 - The adapter tests lexical retrieval and makes no external calls. Its results do not measure hosted semantic embeddings. LangGraph orchestration, approvals and generation are the next milestone.
+
+## M4 verification — 2026-11-05
+
+- M3 checkpoint `03382a3` was committed locally with owner metadata. The live indexed revision matched the committed policy file.
+- Added authenticated customer intake, clarification and operator review endpoints. Intake retries are scoped to a customer and request UUID. Decisions are scoped to the exact proposal UUID and can be replayed safely.
+- LangGraph runs parallel order and policy nodes, then a decision node. Mutations interrupt before execution. `PostgresSaver` keeps checkpoints in `supportops_graph`. The local worker claims tickets using row locks, retries transient failures up to three attempts and projects outcomes and completion events together.
+- The offline decision adapter uses structured intent and customer confirmation. It makes no hosted generation calls. Mutation replay uses the M2 action ledger and stale versions are rejected. If checkpoint acknowledgement is lost after a committed action, final projection can recover from that ledger.
+- `alembic upgrade head`, `alembic check`, checkpoint setup, Ruff, mypy and 24 pytest tests passed against PostgreSQL. The eight workflow tests include concurrent recovery, duplicate approval, authorization, clarification, bounded failure, successful return and stale approval.
+- A live HTTP smoke test through the Compose web proxy stopped the worker at the approval boundary, submitted the same approval twice while the worker was stopped, then restarted it. The order was cancelled at version 1 with exactly one action ledger entry and one completion event. Temporary records and credentials were cleaned up. API readiness passed after the test.
+- Completion events are persisted locally. n8n delivery, the operator UI and live Foundry generation remain later milestones.

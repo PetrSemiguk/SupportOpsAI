@@ -35,6 +35,7 @@ jobs:
       - run: uv run mypy
       - run: uv run alembic upgrade head
       - run: uv run alembic check
+      - run: uv run python -m supportops.worker --setup
       - run: uv run pytest
 
   frontend:

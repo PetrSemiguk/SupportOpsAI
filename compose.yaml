@@ -22,7 +22,14 @@ services:
     environment: &backend_environment
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-supportops}:${POSTGRES_PASSWORD:-supportops-local-only}@db:5432/${POSTGRES_DB:-supportops}
       DEMO_CUSTOMER_TOKENS: ${DEMO_CUSTOMER_TOKENS:-}
-    command: ["sh", "-c", ".venv/bin/alembic upgrade head && .venv/bin/python -m supportops.index_policies"]
+      DEMO_OPERATOR_TOKEN: ${DEMO_OPERATOR_TOKEN:-}
+    command:
+      - sh
+      - -c
+      - >-
+        .venv/bin/alembic upgrade head
+        && .venv/bin/python -m supportops.index_policies
+        && .venv/bin/python -m supportops.worker --setup
     depends_on:
       db:
         condition: service_healthy
@@ -40,6 +47,16 @@ services:
       interval: 5s
       timeout: 5s
       retries: 12
+
+  worker:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-supportops}:${POSTGRES_PASSWORD:-supportops-local-only}@db:5432/${POSTGRES_DB:-supportops}
+    command: [".venv/bin/python", "-m", "supportops.worker"]
+    restart: on-failure
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
   web:
     build: ./frontend

@@ -40,8 +40,35 @@ that token in the API docs and call `GET /api/orders`. Use the listed order ID
 in `GET /api/orders/{order_id}`. Percent-encode the `#` in order IDs when building
 a URL yourself. The API uses local demo credentials and scopes results to their owner.
 
-Cancellation and return operations are internal service functions. The operator
-approval workflow will expose them through the ticket lifecycle in a later milestone.
+## Ticket workflow
+
+Set a separate random `DEMO_OPERATOR_TOKEN` in `.env` before starting Compose.
+The customer and operator each use their own bearer token. Open the interactive
+API docs at http://localhost:8000/docs to exercise the workflow.
+
+1. As the customer, use `POST /api/tickets` with a fresh UUID in `request_id`, a
+   message, an intent (`status`, `cancel`, `return`, or `other`) and, if known,
+   an order ID. For mutations, supply `cancellation_reason` or `item_ids` and set
+   `customer_confirmed` only after confirming the action details.
+2. Poll `GET /api/tickets/{ticket_id}`. An incomplete request enters
+   `needs_clarification`. The customer can submit revised details at
+   `POST /api/tickets/{ticket_id}/clarification`.
+3. As the operator, use `GET /api/tickets` or `GET /api/tickets/{ticket_id}/operator`
+   to review the outcome, order facts and policy excerpts. At `awaiting_approval`,
+   post the displayed `proposal_id` and an `approved` boolean to
+   `POST /api/tickets/{ticket_id}/decision`.
+4. The worker resumes from a PostgreSQL checkpoint and revalidates the action.
+   It records at most one order change for a proposal and writes a completion event.
+
+The worker polls the local PostgreSQL queue and locks each claimed ticket. The
+order and policy nodes read in parallel. The current decision node uses the
+submitted structured fields and a deterministic response adapter. Hosted
+generation and n8n event delivery are later milestones. Confirmed mutations only
+change the simulated shop database.
+
+Compose initializes the checkpoint tables after migrations and policy indexing.
+When running the API on the host, run `uv run python -m supportops.worker --setup`
+once after migrations and start `uv run python -m supportops.worker` separately.
 
 ## Policy search
 
@@ -87,8 +114,9 @@ uv run mypy
 uv run pytest
 ```
 
-Set `TEST_DATABASE_URL` to a migrated PostgreSQL database to include the integration
-check. Without it, pytest reports that check as skipped. Frontend verification uses
+Set `TEST_DATABASE_URL` to a migrated PostgreSQL test database with checkpoint
+tables initialized. Use a separate database from any running demo worker.
+Without it, pytest reports integration checks as skipped. Frontend verification uses
 `npm run lint` and `npm run build` in `frontend`.
 
 The frontend pins a `minimatch` override to 11.0.1 to address advisory
