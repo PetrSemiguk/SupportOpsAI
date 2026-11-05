@@ -3,7 +3,7 @@
 Each milestone ends with relevant verification, diff review, a local commit when permitted and a PROGRESS.md update. Continue to the next unblocked milestone.
 
 - [x] M0. Repository connected and instructions installed. Author and committer identities checked. Git index writes and Docker Engine access verified through automatic approval review. Activate the implementation Goal only after the user asks to start.
-- [ ] M1. Select and pin project-compatible runtimes. Create the backend/frontend structure, dependency locks, local PostgreSQL/pgvector container, migrations and basic CI checks. Verify clean startup, health endpoint and database connectivity.
+- [x] M1. Python 3.12.14 and Node 24 container runtime selected. Backend/frontend, lockfiles, PostgreSQL/pgvector, migration, health endpoints and CI checks implemented. Real Compose startup and database/API/web proxy checks passed.
 - [ ] M2. Import pinned retail fixtures and policy documents. Implement order/customer ownership, tool adapters, policy eligibility rules and idempotent simulated actions. Verify their focused tests.
 - [ ] M3. Build policy chunking, embeddings, retrieval and source citations. Keep evaluation labels isolated. Verify retrieval and missing-evidence behavior.
 - [ ] M4. Implement the three-agent LangGraph flow, persisted checkpoints, durable scheduling, bounded retries, approval and resume. Verify duplicate delivery, restart and stale-proposal scenarios.

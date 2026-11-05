@@ -1,0 +1,8 @@
+:root { font-family: Inter, system-ui, sans-serif; color: #132a35; background: #f2f5f4; }
+body { margin: 0; }
+main { max-width: 960px; margin: 10vh auto; padding: 24px; }
+h1 { font-size: clamp(2.5rem, 7vw, 4.5rem); letter-spacing: -0.05em; margin: 12px 0; }
+h2 { font-size: 1.1rem; }
+.eyebrow { color: #276756; font-size: .8rem; font-weight: 700; letter-spacing: .15em; }
+section { margin-top: 48px; background: white; border: 1px solid #dce5e0; border-radius: 16px; padding: 24px; }
+.note { color: #61736c; font-size: .9rem; }

@@ -1,0 +1,52 @@
+name: supportops-ai
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-supportops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-supportops-local-only}
+      POSTGRES_DB: ${POSTGRES_DB:-supportops}
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build: .
+    environment: &backend_environment
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-supportops}:${POSTGRES_PASSWORD:-supportops-local-only}@db:5432/${POSTGRES_DB:-supportops}
+    command: [".venv/bin/alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build: .
+    environment: *backend_environment
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", ".venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/ready')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  web:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
