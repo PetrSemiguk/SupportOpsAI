@@ -11,11 +11,11 @@
 - Environment verification found Codex CLI 0.166.0, Python 3.14.4, Node.js 26.13.0, npm 11.20.0, uv and the Python launcher. During implementation select project-compatible runtimes and pin them, rather than assuming these latest installed versions are compatible.
 - After the permission change, an approved docker version command successfully returned Docker Engine 29.9.2. Container startup and image pulls will be verified during M1. Azure CLI was not found on PATH.
 - Both git var GIT_AUTHOR_IDENT and GIT_COMMITTER_IDENT resolve to Petr Semiguk <semiguksg@gmail.com>. The repository contains only sample hooks, and no core.hooksPath override was returned. Inspect the actual first commit for any injected trailers after creation.
-- The user activated autonomous implementation. A persistent Goal is active in this chat. Follow the economical single-agent workflow with focused checks. Publishing remains manual.
+- The user activated autonomous implementation and later paused the persistent Goal. The user's follow-up asked to continue work in this chat. Follow the economical single-agent workflow with focused checks. Publishing remains manual.
 
 ## Next step
 
-Proceed with M2. Download a pinned retail source revision into ignored data/raw, retain licensing/provenance, and import bounded repeatable shop fixtures. Build authenticated ownership-aware order tools, eligibility rules and idempotent cancellation/return operations with real PostgreSQL tests. No remote publishing is authorized.
+Proceed with M3. Chunk the versioned policy sections with stable citation IDs, index them in pgvector and verify retrieval and missing-evidence behavior. Use a clearly labeled deterministic offline embedding adapter. Live Foundry calls remain subject to credentials and budget.
 
 ## Verification log
 
@@ -33,3 +33,11 @@ Proceed with M2. Download a pinned retail source revision into ignored data/raw,
 - `npm audit` initially found a moderate minimatch issue in development dependencies. A documented 11.0.1 override removed the findings; lint/build and a new audit passed with zero findings.
 - The frontend lockfile changed after its initial image build. Rebuild web before claiming the running image includes the updated lint dependency. The generated UI bundle is unchanged.
 - Local services listen only on 127.0.0.1 ports 8080, 8000 and 54329. No paid model calls, cloud resources, live LangSmith checks or dataset imports have been performed.
+
+## M2 verification — 2026-11-05
+
+- M1 checkpoint `b5248af` was committed locally with owner metadata. Rebuilt the frontend image during the M2 Compose check using the revised lockfile.
+- Imported the pinned τ-bench retail projection. The first seed inserted 24 orders for 24 customer aliases, and the second inserted zero. Raw source files are ignored, checksums and license are recorded, and policy text documents the supported demo subset.
+- `alembic upgrade head`, `alembic check`, Ruff and mypy passed. Nine pytest tests passed against the running PostgreSQL instance, including concurrent replay, rollback and scoped API access.
+- Rebuilt Compose and verified order access through the running frontend proxy. Owner returned HTTP 200, another authenticated customer returned 404 and an anonymous caller returned 401. Temporary test credentials were scoped to the local demo container.
+- Order writes are internal transaction functions. The later workflow must verify the operator's exact approval before calling them. Live external integrations were not exercised.

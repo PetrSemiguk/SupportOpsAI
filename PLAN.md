@@ -4,7 +4,7 @@ Each milestone ends with relevant verification, diff review, a local commit when
 
 - [x] M0. Repository connected and instructions installed. Author and committer identities checked. Git index writes and Docker Engine access verified through automatic approval review. Activate the implementation Goal only after the user asks to start.
 - [x] M1. Python 3.12.14 and Node 24 container runtime selected. Backend/frontend, lockfiles, PostgreSQL/pgvector, migration, health endpoints and CI checks implemented. Real Compose startup and database/API/web proxy checks passed.
-- [ ] M2. Import pinned retail fixtures and policy documents. Implement order/customer ownership, tool adapters, policy eligibility rules and idempotent simulated actions. Verify their focused tests.
+- [x] M2. Imported 24 orders from a pinned retail snapshot and added policy documents. Verified authenticated order access, cancellation/return rules and transactional replay protection against PostgreSQL.
 - [ ] M3. Build policy chunking, embeddings, retrieval and source citations. Keep evaluation labels isolated. Verify retrieval and missing-evidence behavior.
 - [ ] M4. Implement the three-agent LangGraph flow, persisted checkpoints, durable scheduling, bounded retries, approval and resume. Verify duplicate delivery, restart and stale-proposal scenarios.
 - [ ] M5. Build the React operator panel and demo intake form. Exercise principal flows through the UI and API.

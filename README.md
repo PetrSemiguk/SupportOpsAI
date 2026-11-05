@@ -3,8 +3,7 @@
 An operator workspace for grounded, auditable retail support decisions.
 
 Development is in progress. The current foundation provides a FastAPI service,
-PostgreSQL with pgvector, migrations and a React connection-status page.
-Agent workflows and ticket actions will be delivered in subsequent milestones.
+PostgreSQL with pgvector, migrations, a React connection-status page and demo order lookup.
 
 ## Run locally
 
@@ -26,6 +25,23 @@ docker compose down
 ```
 
 Stopping the services preserves the database volume.
+
+## Demo orders
+
+With Compose running and `.env` set up from the example, run `uv run python -m
+supportops.seed_retail --download` from the project root. This verifies the pinned
+downloads and imports 24 simulated orders. Subsequent runs preserve existing
+orders and action history. See `data/README.md` for provenance and adaptations.
+
+Set `DEMO_CUSTOMER_TOKENS` in `.env` to a JSON object mapping a seeded customer
+such as `demo-001` to a distinct random bearer token. Restart the API with
+`docker compose up -d api` so it reads the updated environment. Authorize with
+that token in the API docs and call `GET /api/orders`. Use the listed order ID
+in `GET /api/orders/{order_id}`. Percent-encode the `#` in order IDs when building
+a URL yourself. The API uses local demo credentials and scopes results to their owner.
+
+Cancellation and return operations are internal service functions. The operator
+approval workflow will expose them through the ticket lifecycle in a later milestone.
 
 ## Backend development
 

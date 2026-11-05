@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from supportops.config import Settings
 from supportops.database import check_database, create_database_engine
+from supportops.orders_api import router as orders_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -22,6 +23,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             engine.dispose()
 
     application = FastAPI(title="SupportOps AI", version="0.1.0", lifespan=lifespan)
+    application.state.settings = configuration
+    application.include_router(orders_router)
 
     @application.get("/api/health/live")
     def live() -> dict[str, str]:

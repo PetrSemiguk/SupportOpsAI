@@ -34,6 +34,7 @@ jobs:
       - run: uv run ruff format --check backend
       - run: uv run mypy
       - run: uv run alembic upgrade head
+      - run: uv run alembic check
       - run: uv run pytest
 
   frontend:
