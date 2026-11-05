@@ -43,6 +43,19 @@ a URL yourself. The API uses local demo credentials and scopes results to their 
 Cancellation and return operations are internal service functions. The operator
 approval workflow will expose them through the ticket lifecycle in a later milestone.
 
+## Policy search
+
+Compose indexes the sections in `data/policies/retail.md` after migrations.
+For host-based development or a policy edit, run `uv run python -m
+supportops.index_policies` to refresh the index. Query `/api/policies/search`
+with a `q` parameter. Results include ranked excerpts, stable section identifiers
+and a content revision. A query without enough matching evidence returns no excerpts.
+
+The default `offline-token-hash-v1` uses deterministic token vectors via the
+LangChain embeddings interface and cosine distance in PostgreSQL. It supports
+repeatable tests and local demos. It measures lexical similarity and does not
+measure the quality of a hosted semantic embedding model.
+
 ## Backend development
 
 Use Python 3.12 and uv. Copy `.env.example` to `.env` for host-based development,

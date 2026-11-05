@@ -1,3 +1,4 @@
+import supportops.policies  # noqa: F401 - register policy metadata for autogeneration
 from alembic import context
 from supportops.config import Settings
 from supportops.database import create_database_engine

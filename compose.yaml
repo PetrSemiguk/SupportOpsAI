@@ -22,7 +22,7 @@ services:
     environment: &backend_environment
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-supportops}:${POSTGRES_PASSWORD:-supportops-local-only}@db:5432/${POSTGRES_DB:-supportops}
       DEMO_CUSTOMER_TOKENS: ${DEMO_CUSTOMER_TOKENS:-}
-    command: [".venv/bin/alembic", "upgrade", "head"]
+    command: ["sh", "-c", ".venv/bin/alembic upgrade head && .venv/bin/python -m supportops.index_policies"]
     depends_on:
       db:
         condition: service_healthy

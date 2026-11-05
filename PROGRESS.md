@@ -15,7 +15,7 @@
 
 ## Next step
 
-Proceed with M3. Chunk the versioned policy sections with stable citation IDs, index them in pgvector and verify retrieval and missing-evidence behavior. Use a clearly labeled deterministic offline embedding adapter. Live Foundry calls remain subject to credentials and budget.
+Proceed with M4. Build the ticket lifecycle, three-node agent workflow and durable worker using LangGraph checkpoints and PostgreSQL. Bind operator approval to the exact proposal and reuse the order version and action ledger to revalidate and deduplicate writes. Test restart, duplicate delivery and stale approval. Live Foundry calls remain subject to credentials and budget.
 
 ## Verification log
 
@@ -41,3 +41,11 @@ Proceed with M3. Chunk the versioned policy sections with stable citation IDs, i
 - `alembic upgrade head`, `alembic check`, Ruff and mypy passed. Nine pytest tests passed against the running PostgreSQL instance, including concurrent replay, rollback and scoped API access.
 - Rebuilt Compose and verified order access through the running frontend proxy. Owner returned HTTP 200, another authenticated customer returned 404 and an anonymous caller returned 401. Temporary test credentials were scoped to the local demo container.
 - Order writes are internal transaction functions. The later workflow must verify the operator's exact approval before calling them. Live external integrations were not exercised.
+
+## M3 verification — 2026-11-05
+
+- M2 checkpoint `7273af1` was committed locally with owner metadata and no co-author trailer.
+- Added a dedicated policy table, four stable citation IDs with content revisions, LangChain-compatible deterministic token embeddings and cosine search via pgvector. Only the application policy file is indexed. Source tasks remain outside the index.
+- Migration and `alembic check` passed. Ruff, mypy and 16 pytest tests passed against PostgreSQL. Tests verify three ranked policy matches, three missing-evidence queries and repeat indexing.
+- `docker compose up --build -d --wait` succeeded. Through the running frontend proxy, the cancellation query returned `data/policies/retail.md#cancellation` and an unrelated query returned zero excerpts.
+- The adapter tests lexical retrieval and makes no external calls. Its results do not measure hosted semantic embeddings. LangGraph orchestration, approvals and generation are the next milestone.

@@ -1,5 +1,7 @@
 # SupportOps demo shop policies
 
+Adapted from the τ-bench retail policy. See the data provenance notes for revision, attribution, license and adaptations.
+
 ## Order access [order-access]
 
 Authenticate the customer before looking up orders. Only disclose orders attached to the authenticated customer. Provide the stored status, items and any tracking references when available. Ask for clarification if an order cannot be identified. Escalate requests outside the demo shop's supported actions.
@@ -15,5 +17,3 @@ Only a delivered order qualifies for a return request. Confirm the order and the
 ## Approval [approval]
 
 Customer confirmation is required for the order and action details. An operator must then approve the exact proposal before any change to an order. An earlier approval does not apply if the order changes. The same approval identifier cannot execute a different action. Replaying a previously completed action returns its recorded result.
-
-Adapted from the τ-bench retail policy. See the data provenance notes for revision, attribution, license and adaptations.
