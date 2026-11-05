@@ -23,6 +23,7 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-supportops}:${POSTGRES_PASSWORD:-supportops-local-only}@db:5432/${POSTGRES_DB:-supportops}
       DEMO_CUSTOMER_TOKENS: ${DEMO_CUSTOMER_TOKENS:-}
       DEMO_OPERATOR_TOKEN: ${DEMO_OPERATOR_TOKEN:-}
+      N8N_COMPLETION_TOKEN: ${N8N_COMPLETION_TOKEN:-}
     command:
       - sh
       - -c
@@ -66,5 +67,29 @@ services:
       api:
         condition: service_healthy
 
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.46.6
+    profiles: [automation]
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      N8N_SECURE_COOKIE: "false"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: none
+      EXECUTIONS_DATA_SAVE_ON_ERROR: none
+      EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: "false"
+      EXECUTIONS_DATA_SAVE_ON_PROGRESS: "false"
+      GENERIC_TIMEZONE: Asia/Singapore
+      WEBHOOK_URL: http://localhost:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/workflows:ro
+    depends_on:
+      api:
+        condition: service_healthy
+
 volumes:
   postgres_data:
+  n8n_data:

@@ -1,0 +1,115 @@
+{
+  "id": "SupportOpsIntake",
+  "name": "SupportOps AI - Ticket intake",
+  "active": false,
+  "nodes": [
+    {
+      "id": "d4ef6a34-83ec-43ce-a284-56833cc3416f",
+      "name": "Receive support request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "supportops/intake",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SupportOpsIntakeKey",
+          "name": "SupportOps intake key"
+        }
+      },
+      "webhookId": "1e7abf95-03ad-4c62-b278-2e0a97b491b8"
+    },
+    {
+      "id": "b506b1f2-799d-428b-8a91-5e51dff195e4",
+      "name": "Create or replay ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/api/tickets",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $json.headers.authorization ?? '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ca63ece8-1710-4801-93c1-8ef9b1b93f3b",
+      "name": "Return API receipt",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Receive support request": {
+      "main": [
+        [
+          {
+            "node": "Create or replay ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create or replay ticket": {
+      "main": [
+        [
+          {
+            "node": "Return API receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "saveManualExecutions": false,
+    "saveExecutionProgress": false
+  }
+}

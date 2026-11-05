@@ -82,12 +82,18 @@ generated demo credentials. This browser workspace is intended for the local sho
 The worker polls the local PostgreSQL queue and locks each claimed ticket. The
 order and policy nodes read in parallel. The current decision node uses the
 submitted structured fields and a deterministic response adapter. Hosted
-generation and n8n event delivery are later milestones. Confirmed mutations only
-change the simulated shop database.
+generation is a later milestone. Confirmed mutations change the simulated shop database.
 
 Compose initializes the checkpoint tables after migrations and policy indexing.
 When running the API on the host, run `uv run python -m supportops.worker --setup`
 once after migrations and start `uv run python -m supportops.worker` separately.
+
+## n8n automation
+
+Start the optional integration with `docker compose --profile automation up --build -d`.
+The `n8n/` folder contains importable workflows for authenticated ticket intake
+and scheduled delivery to a local notification log. See `n8n/README.md` for
+credential setup and a webhook example.
 
 ## Policy search
 

@@ -22,6 +22,7 @@ from supportops.tickets import CompletionEvent, Ticket
 CUSTOMER = {"Authorization": "Bearer customer-test-token"}
 OPERATOR = {"Authorization": "Bearer operator-test-token"}
 OTHER = {"Authorization": "Bearer other-test-token"}
+AUTOMATION = {"Authorization": "Bearer completion-test-token"}
 pytestmark = pytest.mark.integration
 
 
@@ -70,6 +71,7 @@ def demo() -> Iterator[Demo]:
             "other": SecretStr("other-test-token"),
         },
         demo_operator_token=SecretStr("operator-test-token"),
+        n8n_completion_token=SecretStr("completion-test-token"),
     )
     engine = create_database_engine(settings)
     with Session(engine) as session, session.begin():
@@ -268,6 +270,36 @@ def test_checkpoint_failure_preserves_committed_action(
     finished = demo.ticket(ticket_id)
     assert finished["status"] == "completed"
     assert finished["outcome"]["result"]["order"]["version"] == 1
+
+
+def test_completion_feed_is_scoped_and_acknowledgement_is_idempotent(demo: Demo) -> None:
+    ticket_id = demo.submit(intent="status")["id"]
+    assert demo.step()
+    feed = "/api/integrations/completions"
+    endpoint = f"{feed}/{ticket_id}/ack"
+    assert demo.client.get(feed).status_code == 401
+    assert demo.client.get(feed, headers=OPERATOR).status_code == 401
+    assert demo.client.post(endpoint, headers=CUSTOMER).status_code == 401
+    events = demo.client.get(feed, headers=AUTOMATION).json()["events"]
+    event = next(entry for entry in events if entry["ticket_id"] == ticket_id)
+    assert set(event) == {"ticket_id", "status", "created_at", "delivered_at"}
+    assert event["delivered_at"] is None
+
+    def deliver() -> dict[str, Any]:
+        response = demo.client.post(endpoint, headers=AUTOMATION)
+        assert response.status_code == 200
+        return response.json()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first, second = [executor.submit(deliver) for _ in range(2)]
+        receipt = first.result(timeout=15)
+        assert receipt == second.result(timeout=15)
+    assert receipt["delivered_at"] is not None
+    assert all(
+        entry["ticket_id"] != ticket_id
+        for entry in demo.client.get(feed, headers=AUTOMATION).json()["events"]
+    )
+    assert demo.client.post(f"{feed}/{uuid4()}/ack", headers=AUTOMATION).status_code == 404
 
 
 def test_transient_tool_failure_retries_are_bounded(

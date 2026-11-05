@@ -93,13 +93,14 @@ class Ticket(RetailBase):
 
 
 class CompletionEvent(RetailBase):
-    """Durable event for later n8n delivery, written with the ticket projection."""
+    """Durable completion event and its acknowledgement by the demo channel."""
 
     __tablename__ = "completion_events"
 
     ticket_id: Mapped[UUID] = mapped_column(ForeignKey("tickets.id"), primary_key=True)
     status: Mapped[str] = mapped_column(String(24))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class TicketView(BaseModel):

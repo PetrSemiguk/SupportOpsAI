@@ -8,3 +8,4 @@ class Settings(BaseSettings):
     database_url: SecretStr
     demo_customer_tokens: dict[str, SecretStr] = Field(default_factory=dict)
     demo_operator_token: SecretStr | None = None
+    n8n_completion_token: SecretStr | None = None

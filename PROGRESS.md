@@ -15,7 +15,7 @@
 
 ## Next step
 
-Proceed with M6. Add authenticated n8n intake and completion workflows. Reuse customer-scoped request deduplication and the durable completion event, keep credentials out of workflow exports, and verify delivery and replay in local Compose.
+Proceed with M7. Add configurable Foundry generation and embedding adapters, redacted LangSmith tracing and at least 50 versioned evaluation cases. Keep the local deterministic path usable and distinguish its metrics from credential-dependent live results.
 
 ## Verification log
 
@@ -68,3 +68,12 @@ Proceed with M6. Add authenticated n8n intake and completion workflows. Reuse cu
 - Built and ran Compose. A fresh headless Chrome session submitted order status, cancellation and return via the customer form, inspected policy citations and used the operator filter and approval controls. PostgreSQL confirmed three completed tickets and exactly two simulated order changes. Temporary records and browser test credentials were removed.
 - Inspected operator and customer layouts at desktop and 390px mobile widths. No horizontal overflow or uncaught browser errors occurred in the tested flows. Playwright and screenshots are in ignored `.local` and were used for milestone verification.
 - Created ignored `.env` with random local demo credentials for `demo-007` (status), `demo-008` (pending cancellation) and `demo-021` (delivered return), plus a distinct operator token. These are local demo accounts. Model decisions still use the offline adapter.
+
+## M6 verification — 2026-11-05
+
+- M5 checkpoint `8561ae1` was verified locally and present on the tracking branch when M6 started.
+- Added a separate completion token, a pending feed without customer details and transactional idempotent acknowledgements. Existing events remain pending after migration until consumed.
+- Ruff, mypy, migrations and 25 pytest tests passed against PostgreSQL. The new integration test checks role isolation, concurrent acknowledgements and a stable first timestamp.
+- Pinned n8n 2.46.6 in the optional Compose profile. Imported both JSON workflows into the local instance with separate encrypted credentials. Activated the workflows via the n8n CLI. Credential values are stored only in the ignored local environment and n8n credential store.
+- A live n8n test rejected missing webhook/customer credentials, created two status tickets, returned the same ticket for a replay and passed through HTTP 409 for a conflicting body. The scheduled workflow acknowledged both completion events. Repeated acknowledgements preserved the original timestamps. Test tickets were cleaned up.
+- The completion workflow records delivery to a local notification sink in PostgreSQL. External messaging and live model calls were outside this milestone.
