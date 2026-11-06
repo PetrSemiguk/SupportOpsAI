@@ -28,14 +28,15 @@ jobs:
         env:
           POSTGRES_USER: supportops
           POSTGRES_PASSWORD: ci-only-password
-          POSTGRES_DB: supportops
+          POSTGRES_DB: supportops_ci_eval
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U supportops -d supportops"
+          --health-cmd "pg_isready -U supportops -d supportops_ci_eval"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql+psycopg://supportops:ci-only-password@localhost:5432/supportops
-      TEST_DATABASE_URL: postgresql+psycopg://supportops:ci-only-password@localhost:5432/supportops
+      DATABASE_URL: postgresql+psycopg://supportops:ci-only-password@localhost:5432/supportops_ci_eval
+      TEST_DATABASE_URL: postgresql+psycopg://supportops:ci-only-password@localhost:5432/supportops_ci_eval
+      EVAL_DATABASE_URL: postgresql+psycopg://supportops:ci-only-password@localhost:5432/supportops_ci_eval
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -49,6 +50,7 @@ jobs:
       - run: uv run alembic check
       - run: uv run python -m supportops.worker --setup
       - run: uv run pytest
+      - run: uv run python -m supportops.evaluate
 
   frontend:
     runs-on: ubuntu-latest

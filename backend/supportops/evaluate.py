@@ -22,7 +22,10 @@ from supportops.tickets import Intent, OperatorDecision, Ticket, TicketInput, Ti
 from supportops.worker import open_checkpointer
 from supportops.workflow import run_ticket
 
-CASES = Path("data/evaluation/cases_v1.jsonl")
+CASE_FILES = (
+    Path("data/evaluation/cases_v1.jsonl"),
+    Path("data/evaluation/adapted_cases_v1.jsonl"),
+)
 
 
 class Case(BaseModel):
@@ -181,7 +184,8 @@ def main() -> None:
     )
     cases = [
         Case.model_validate_json(line)
-        for line in CASES.read_text(encoding="utf-8").splitlines()
+        for path in CASE_FILES
+        for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
     if len(cases) < 50 or len({case.id for case in cases}) != len(cases):
@@ -199,7 +203,7 @@ def main() -> None:
     retrieval = [result for result in results if result.expected_citation is not None]
     passed = sum(result.passed for result in results)
     summary = {
-        "dataset": CASES.as_posix(),
+        "datasets": [path.as_posix() for path in CASE_FILES],
         "mode": "offline",
         "cases": len(results),
         "passed": passed,

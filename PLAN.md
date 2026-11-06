@@ -11,7 +11,7 @@ Each milestone ends with relevant verification, diff review, a local commit when
 - [x] M6. Imported and ran two authenticated n8n workflows in Compose. Verified intake replay, conflict responses, scheduled notification acknowledgements and separate credential references.
 - [x] M7. Added opt-in Foundry and LangSmith integrations and ran 50 versioned scenarios against local PostgreSQL. Provider contracts were tested with doubles. Live checks require separate credentials and budget.
 - [x] M8. Prepared and compiled Azure Bicep, manual image publishing and deployment workflows, monitoring and an operational runbook. Tested release sequencing with doubles and verified local container compatibility. Live provisioning remains separate.
-- [ ] M9. Run end-to-end acceptance, resolve defects, complete README/demo instructions and audit local commit metadata. Report the exact readiness level and remaining external prerequisites.
+- [x] M9. Passed local end-to-end acceptance, added source-mapped evaluation cases, updated launch instructions and audited Git history. Recorded remaining live cloud prerequisites.
 
 ## Later scope
 

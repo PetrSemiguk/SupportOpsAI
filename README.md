@@ -4,14 +4,39 @@ An operator workspace for grounded, auditable retail support decisions.
 
 The React workspace connects to FastAPI, PostgreSQL and a LangGraph worker. It
 supports order status enquiries and operator approval of simulated cancellations
-and returns. The current workflow uses a deterministic decision adapter.
+and returns. The default workflow uses a deterministic decision adapter and
+local policy retrieval.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    UI["React customer and operator views"] --> API["FastAPI"]
+    N8N["n8n intake and completion"] --> API
+    API --> DB[("PostgreSQL queue, orders, policies and checkpoints")]
+    DB --> W["Worker"]
+    subgraph LG["LangGraph"]
+        O["Order lookup"] --> D["Decision"]
+        P["Policy search"] --> D
+        D --> A["Pause for operator approval when required"]
+        A --> M["Revalidate and apply simulated action"]
+    end
+    W --> O
+    W --> P
+    W --> DB
+```
+
+The worker projects responses and completion events to PostgreSQL. The n8n
+workflows call the API to submit tickets and acknowledge those events.
+The LangGraph worker runs `order_agent`, `policy_agent` and `decision_agent`.
+See [workflow.py](backend/supportops/workflow.py) for routing and checkpoint recovery.
 
 ## Run locally
 
 Install Docker Desktop and start its Linux container engine. From the repository root run
 
 ```sh
-docker compose up --build -d
+docker compose up --build -d --wait
 ```
 
 Open http://localhost:8080 for the frontend and http://localhost:8000/docs for the API.
@@ -29,13 +54,22 @@ Stopping the services preserves the database volume.
 
 ## Demo orders
 
-With Compose running and `.env` set up from the example, run `uv run python -m
-supportops.seed_retail --download` from the project root. This verifies the pinned
-downloads and imports 24 simulated orders. Subsequent runs preserve existing
-orders and action history. See `data/README.md` for provenance and adaptations.
+With Compose running, seed from the repository root:
 
-Set `DEMO_CUSTOMER_TOKENS` in `.env` to a JSON object mapping a seeded customer
-such as `demo-001` to a distinct random bearer token. Restart the API with
+```sh
+docker compose run --rm --no-deps migrate .venv/bin/python -m supportops.seed_retail --download --directory /tmp/supportops-retail
+```
+
+This verifies the pinned downloads and imports 24 simulated orders. Subsequent
+runs preserve existing orders and action history. Host development can also use
+`uv run python -m supportops.seed_retail --download`. See the [data provenance](data/README.md)
+for the source and evaluation adaptations.
+
+Copy `.env.example` to `.env` if it does not exist. Set `DEMO_CUSTOMER_TOKENS`
+to a JSON object mapping seeded customer aliases to distinct random bearer tokens.
+On the initial seed, use `demo-007` for status, `demo-008` for a pending cancellation
+and `demo-021` for a delivered return. Set `DEMO_OPERATOR_TOKEN` to a separate token.
+Recreate the API with
 `docker compose up -d api` so it reads the updated environment. Authorize with
 that token in the API docs and call `GET /api/orders`. Use the listed order ID
 in `GET /api/orders/{order_id}`. Percent-encode the `#` in order IDs when building
@@ -43,7 +77,6 @@ a URL yourself. The API uses local demo credentials and scopes results to their 
 
 ## Ticket workflow
 
-Set a separate random `DEMO_OPERATOR_TOKEN` in `.env` before starting Compose.
 The customer and operator each use their own bearer token. Open the interactive
 API docs at http://localhost:8000/docs to exercise the workflow.
 
@@ -79,10 +112,10 @@ generated demo credentials. This browser workspace is intended for the local sho
 4. The worker resumes from a PostgreSQL checkpoint and revalidates the action.
    It records at most one order change for a proposal and writes a completion event.
 
-The worker polls the local PostgreSQL queue and locks each claimed ticket. The
-order and policy nodes read in parallel. The current decision node uses the
-submitted structured fields and a deterministic response adapter. Hosted
-generation is a later milestone. Confirmed mutations change the simulated shop database.
+The worker polls the local PostgreSQL queue and locks each claimed ticket.
+The order and policy nodes read in parallel. The decision node uses the submitted
+structured fields and verified policy evidence. After operator approval, a
+permitted mutation changes the simulated shop database.
 
 Compose initializes the checkpoint tables after migrations and policy indexing.
 When running the API on the host, run `uv run python -m supportops.worker --setup`
@@ -178,12 +211,18 @@ Without it, pytest reports integration checks as skipped. Frontend verification 
 
 ### Offline evaluation
 
-The 50 synthetic cases in `data/evaluation/cases_v1.jsonl` cover structured retail
-requests, missing details, policy denials, approvals, rejections and stale
-approvals. The runner measures outcome and action correctness, citation hits,
+The 56 synthetic cases under `data/evaluation/` cover structured retail requests,
+missing details, policy denials, approvals, rejections and stale approvals. Six
+adaptations use selected τ-bench and Bitext requests. The runner measures outcome
+and action correctness, citation hits,
 policy violations and local graph latency including checkpoint reads and writes.
 The inputs supply the intent explicitly. These scores measure workflow behavior
 and policy retrieval in the demo, independent of hosted model quality.
+
+The final local run passed 56/56 cases, retrieved 44/44 expected citations and
+recorded zero policy violations. Graph execution took 39 ms at p50 and 93 ms at
+p95 on the development machine. The GitHub checks workflow also runs this suite
+against an isolated database.
 
 Create a dedicated local PostgreSQL database, then run from the repository root.
 The example uses PowerShell and the local demo database credentials.
@@ -205,6 +244,18 @@ are verified with this override. Revisit it when upstream dependencies adopt a f
 
 The health endpoints distinguish process liveness from readiness. Readiness requires
 database connectivity, an applied migration and the vector extension.
+
+## Release readiness
+
+The local demo covers order lookup, cancellation, return, policy citations,
+durable approval and notification receipts through n8n. Intent is selected
+explicitly in the demo. Payments, order changes and notifications are simulated.
+The operator and customer views use separate demo tokens.
+
+Azure templates have been compiled locally. Foundry and LangSmith contracts
+have been exercised with test doubles. Live verification requires the Azure
+subscription, provider credentials and an agreed budget. Service Bus and Blob
+Storage are reserved infrastructure. The current queue is PostgreSQL.
 
 ## Project contract
 
