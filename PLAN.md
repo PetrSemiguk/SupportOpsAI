@@ -9,7 +9,7 @@ Each milestone ends with relevant verification, diff review, a local commit when
 - [x] M4. Implemented the order, policy and decision nodes in LangGraph, persisted checkpoints, PostgreSQL queue, exact operator approval and completion events. Verified retry, replay, restart and stale proposals.
 - [x] M5. Added the React operator queue, ticket review, decisions and demo customer intake. Verified order status, cancellation and return in Chrome against the real Compose API, worker and PostgreSQL.
 - [x] M6. Imported and ran two authenticated n8n workflows in Compose. Verified intake replay, conflict responses, scheduled notification acknowledgements and separate credential references.
-- [ ] M7. Add Foundry and LangSmith integration configuration and a 50-scenario evaluation suite. Run local evaluations and, only with credentials and budget, live checks. Record actual results.
+- [x] M7. Added opt-in Foundry and LangSmith integrations and ran 50 versioned scenarios against local PostgreSQL. Provider contracts were tested with doubles. Live checks require separate credentials and budget.
 - [ ] M8. Prepare Bicep, container publishing/deployment workflow definitions with manual triggers, monitoring and operational instructions. Validate templates locally. Real resource creation remains a separately authorized milestone.
 - [ ] M9. Run end-to-end acceptance, resolve defects, complete README/demo instructions and audit local commit metadata. Report the exact readiness level and remaining external prerequisites.
 

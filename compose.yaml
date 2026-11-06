@@ -53,6 +53,15 @@ services:
     build: .
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-supportops}:${POSTGRES_PASSWORD:-supportops-local-only}@db:5432/${POSTGRES_DB:-supportops}
+      FOUNDRY_ENABLED: ${FOUNDRY_ENABLED:-false}
+      FOUNDRY_ENDPOINT: ${FOUNDRY_ENDPOINT:-}
+      FOUNDRY_API_KEY: ${FOUNDRY_API_KEY:-}
+      FOUNDRY_CHAT_DEPLOYMENT: ${FOUNDRY_CHAT_DEPLOYMENT:-}
+      FOUNDRY_EMBEDDING_DEPLOYMENT: ${FOUNDRY_EMBEDDING_DEPLOYMENT:-}
+      FOUNDRY_MAX_COMPLETION_TOKENS: ${FOUNDRY_MAX_COMPLETION_TOKENS:-300}
+      SUPPORTOPS_LANGSMITH_ENABLED: ${SUPPORTOPS_LANGSMITH_ENABLED:-false}
+      SUPPORTOPS_LANGSMITH_API_KEY: ${SUPPORTOPS_LANGSMITH_API_KEY:-}
+      SUPPORTOPS_LANGSMITH_PROJECT: ${SUPPORTOPS_LANGSMITH_PROJECT:-supportops-ai}
     command: [".venv/bin/python", "-m", "supportops.worker"]
     restart: on-failure
     depends_on:

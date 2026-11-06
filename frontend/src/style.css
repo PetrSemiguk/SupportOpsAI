@@ -108,6 +108,7 @@ small { color: var(--muted); }
 .message { white-space: pre-wrap; overflow-wrap: anywhere; }
 .response, .proposal { border-radius: 9px; padding: .8rem .9rem; background: #edf5f0; }
 .proposal { background: #f8f6ef; }
+.model-draft { margin-top: .65rem; }
 .proposal p, .result-id { margin-top: .35rem; font-size: .85rem; }
 .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .65rem; }
 .facts { display: flex; flex-wrap: wrap; gap: .8rem 2rem; margin: 0; }

@@ -102,7 +102,7 @@ def process_one(engine: Engine, settings: Settings) -> bool:
         ticket.attempts += 1
         try:
             with open_checkpointer(settings) as checkpointer:
-                outcome = run_ticket(engine, checkpointer, ticket)
+                outcome = run_ticket(engine, checkpointer, ticket, settings)
         except (OperationalError, psycopg.OperationalError, ConnectionError) as error:
             LOGGER.warning("Transient ticket failure %s (%s)", ticket.id, type(error).__name__)
             if ticket.attempts < MAX_ATTEMPTS:

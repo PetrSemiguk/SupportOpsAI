@@ -108,6 +108,31 @@ LangChain embeddings interface and cosine distance in PostgreSQL. It supports
 repeatable tests and local demos. It measures lexical similarity and does not
 measure the quality of a hosted semantic embedding model.
 
+## Optional hosted integrations
+
+The worker can call Microsoft Foundry to generate a cited draft for operator
+review. Enable `FOUNDRY_ENABLED` in the private `.env` after configuring a budget,
+an Azure OpenAI v1 endpoint, a key and a chat deployment that supports structured
+outputs. The draft uses verified facts and policy excerpts. Customer messages,
+order identifiers and credentials are excluded from the model prompt. The
+deterministic response and operator approval rules still apply.
+
+To use hosted vectors in the workflow, configure a separate embedding deployment
+that supports 256 dimensions and explicitly build its index. Rebuild after a policy
+or embedding deployment change. The public policy search endpoint uses the
+offline index. The worker falls back to offline search when the hosted index
+returns no excerpts or a provider error occurs.
+
+```sh
+docker compose run --rm worker .venv/bin/python -m supportops.index_policies --foundry
+docker compose up -d worker
+```
+
+LangSmith is separately opt-in. Set `SUPPORTOPS_LANGSMITH_ENABLED`,
+`SUPPORTOPS_LANGSMITH_API_KEY` and optionally `SUPPORTOPS_LANGSMITH_PROJECT`, then
+recreate the worker. Published traces contain fixed workflow and step names,
+timestamps and statuses. Raw graph inputs and outputs stay local.
+
 ## Backend development
 
 Use Python 3.12 and uv. Copy `.env.example` to `.env` for host-based development,
@@ -143,6 +168,29 @@ Set `TEST_DATABASE_URL` to a migrated PostgreSQL test database with checkpoint
 tables initialized. Use a separate database from any running demo worker.
 Without it, pytest reports integration checks as skipped. Frontend verification uses
 `npm run lint` and `npm run build` in `frontend`.
+
+### Offline evaluation
+
+The 50 synthetic cases in `data/evaluation/cases_v1.jsonl` cover structured retail
+requests, missing details, policy denials, approvals, rejections and stale
+approvals. The runner measures outcome and action correctness, citation hits,
+policy violations and local graph latency including checkpoint reads and writes.
+The inputs supply the intent explicitly. These scores measure workflow behavior
+and policy retrieval in the demo, independent of hosted model quality.
+
+Create a dedicated local PostgreSQL database, then run from the repository root.
+The example uses PowerShell and the local demo database credentials.
+
+```powershell
+docker compose exec -T db createdb -U supportops supportops_eval
+$env:EVAL_DATABASE_URL = "postgresql+psycopg://supportops:supportops-local-only@localhost:54329/supportops_eval"
+$env:DATABASE_URL = $env:EVAL_DATABASE_URL
+uv run alembic upgrade head
+uv run python -m supportops.worker --setup
+New-Item -ItemType Directory -Force .local | Out-Null
+uv run python -m supportops.evaluate --output .local/offline-evaluation.json
+Remove-Item Env:DATABASE_URL, Env:EVAL_DATABASE_URL
+```
 
 The frontend pins a `minimatch` override to 11.0.1 to address advisory
 GHSA-g3hv-75wg-m249 in the development lint toolchain. Lint and production builds

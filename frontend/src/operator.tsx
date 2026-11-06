@@ -34,6 +34,10 @@ function TicketDetail({ ticket, decide, busy, error, offline }: {
     {outcome && <section className="case-section" aria-labelledby="response-title">
       <h3 id="response-title">Workflow response</h3>
       <p className="response" aria-live="polite">{outcome.response}</p>
+      {outcome.draft && <div className="proposal model-draft">
+        <strong>Model draft · Review before use</strong>
+        <p>{outcome.draft.text}</p><code>{outcome.draft.citation}</code>
+      </div>}
       {outcome.result && <p className="muted result-id">Action recorded · <code>{outcome.result.action_id}</code></p>}
     </section>}
     {order && <section className="case-section" aria-labelledby="order-title">

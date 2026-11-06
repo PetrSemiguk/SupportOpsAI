@@ -43,6 +43,7 @@ export interface Ticket {
   decision: { approved: boolean; proposal_id: string } | null
   outcome: {
     response: string
+    draft?: { text: string; citation: string } | null
     order: Order | null
     evidence: { citation: string; title: string; content: string; revision: string }[]
     proposal_id: string | null

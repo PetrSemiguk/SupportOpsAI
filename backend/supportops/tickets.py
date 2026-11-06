@@ -7,6 +7,7 @@ from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
+from supportops.foundry import Draft
 from supportops.policies import PolicyExcerpt
 from supportops.retail import ActionResult, OrderDetails, ProposedAction, RetailBase
 
@@ -58,6 +59,8 @@ class TicketOutcome(BaseModel):
     proposal: ProposedAction | None = None
     proposal_id: UUID | None = None
     result: ActionResult | None = None
+    draft: Draft | None = None
+    embedding_model: str | None = None
 
 
 class HistoryEntry(BaseModel):

@@ -23,6 +23,13 @@ router = APIRouter(prefix="/api/tickets", tags=["Tickets"])
 operator = [Depends(require_operator)]
 
 
+def customer_view(ticket: Ticket) -> TicketView:
+    view = TicketView.model_validate(ticket)
+    if view.outcome:
+        view.outcome.draft = None
+    return view
+
+
 def check_owned_order(session: DatabaseSession, customer_id: str, order_id: str | None) -> None:
     if (
         order_id
@@ -65,7 +72,7 @@ def submit_ticket(
             ).one()
             if ticket.initial_input != request:
                 raise HTTPException(409, "Request ID already used for different input")
-        return TicketView.model_validate(ticket)
+        return customer_view(ticket)
 
 
 @router.get("/{ticket_id}")
@@ -80,7 +87,7 @@ def read_ticket(
     )
     if ticket is None:
         raise HTTPException(404, "Ticket not found")
-    return TicketView.model_validate(ticket)
+    return customer_view(ticket)
 
 
 @router.post("/{ticket_id}/clarification", status_code=202)
@@ -108,7 +115,7 @@ def clarify_ticket(
         ticket.available_at = datetime.now(UTC)
         ticket.outcome = None
         ticket.record("clarification_received")
-        return TicketView.model_validate(ticket)
+        return customer_view(ticket)
 
 
 @router.get("", dependencies=operator)

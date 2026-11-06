@@ -8,12 +8,13 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from pydantic import SecretStr
+from pydantic import AnyHttpUrl, SecretStr
 from sqlalchemy import Engine, delete, func, select
 from sqlalchemy.orm import Session
 from supportops import worker
 from supportops.config import Settings
 from supportops.database import create_database_engine
+from supportops.foundry import Draft, FoundryClient
 from supportops.main import create_app
 from supportops.policies import index_policy
 from supportops.retail import Customer, Order, OrderAction
@@ -121,6 +122,52 @@ def test_status_intake_replay_and_isolation(demo: Demo) -> None:
     assert "track-123" in outcome["response"]
     assert outcome["evidence"][0]["citation"].endswith("#order-access")
     assert not demo.step()
+
+
+def test_hosted_draft_is_operator_only(demo: Demo, monkeypatch: pytest.MonkeyPatch) -> None:
+    demo.settings = Settings(
+        database_url=demo.settings.database_url,
+        foundry_enabled=True,
+        foundry_endpoint=AnyHttpUrl("https://example.openai.azure.com/openai/v1"),
+        foundry_api_key=SecretStr("test-foundry-key"),
+        foundry_chat_deployment="chat-test",
+        foundry_embedding_deployment=None,
+        supportops_langsmith_enabled=False,
+    )
+    calls: list[dict[str, object]] = []
+
+    def draft(_client: FoundryClient, facts: dict[str, object], evidence: dict[str, str]) -> Draft:
+        calls.append(facts)
+        citation = "data/policies/retail.md#cancellation"
+        assert citation in evidence
+        return Draft(text="The action awaits operator approval.", citation=citation)
+
+    monkeypatch.setattr(FoundryClient, "draft", draft)
+    unconfirmed = demo.submit(customer_confirmed=False)["id"]
+    assert demo.step()
+    assert demo.ticket(unconfirmed)["status"] == "needs_clarification"
+    assert calls == []
+
+    ticket_id = demo.submit(message="Private customer message")["id"]
+    assert demo.step()
+    customer = demo.ticket(ticket_id)
+    assert customer["status"] == "awaiting_approval"
+    assert customer["outcome"]["draft"] is None
+    response = demo.client.get(f"/api/tickets/{ticket_id}/operator", headers=OPERATOR)
+    assert response.status_code == 200, response.text
+    assert response.json()["outcome"]["draft"]["citation"].endswith("#cancellation")
+    assert calls == [
+        {"intent": "cancel", "order_status": "pending", "workflow_status": "awaiting_approval"}
+    ]
+    decision = {"approved": False, "proposal_id": customer["outcome"]["proposal_id"]}
+    response = demo.client.post(
+        f"/api/tickets/{ticket_id}/decision", json=decision, headers=OPERATOR
+    )
+    assert response.status_code == 202, response.text
+    assert demo.step()
+    response = demo.client.get(f"/api/tickets/{ticket_id}/operator", headers=OPERATOR)
+    assert response.json()["status"] == "rejected"
+    assert response.json()["outcome"]["draft"] is None
 
 
 def test_approval_survives_restart_and_projection_crash(

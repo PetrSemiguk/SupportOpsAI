@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import NotRequired, TypedDict
 from uuid import uuid5
 
@@ -6,9 +7,13 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
+from langsmith import tracing_context
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
+from supportops.config import Settings
+from supportops.foundry import FoundryClient, FoundryEmbeddings, FoundryError
+from supportops.observability import WorkflowTrace
 from supportops.policies import POLICY_FILE, PolicySearchResult, search_policies
 from supportops.retail import (
     ActionConflict,
@@ -28,6 +33,7 @@ POLICY_QUERIES = {
     "cancel": ("cancellation", "Can I cancel a pending order?"),
     "return": ("return", "Return delivered items to the original payment source"),
 }
+LOGGER = logging.getLogger(__name__)
 
 
 class WorkflowState(TypedDict):
@@ -48,8 +54,15 @@ def evaluate_ticket(state: WorkflowState, ticket: Ticket) -> TicketOutcome:
     if state.get("order") is None:
         return TicketOutcome(status="needs_clarification", response="Provide an order you own.")
     order = OrderDetails.model_validate(state["order"])
-    evidence = PolicySearchResult.model_validate(state["evidence"]).excerpts
-    outcome = TicketOutcome(status="completed", response="", order=order, evidence=evidence)
+    search = PolicySearchResult.model_validate(state["evidence"])
+    evidence = search.excerpts
+    outcome = TicketOutcome(
+        status="completed",
+        response="",
+        order=order,
+        evidence=evidence,
+        embedding_model=search.embedding_model,
+    )
     section_id, _ = POLICY_QUERIES[payload.intent]
     citation = f"{POLICY_FILE.as_posix()}#{section_id}"
     if not any(excerpt.citation == citation for excerpt in evidence):
@@ -99,7 +112,18 @@ def evaluate_ticket(state: WorkflowState, ticket: Ticket) -> TicketOutcome:
     return outcome
 
 
-def run_ticket(engine: Engine, checkpointer: PostgresSaver, ticket: Ticket) -> TicketOutcome:
+def run_ticket(
+    engine: Engine,
+    checkpointer: PostgresSaver,
+    ticket: Ticket,
+    settings: Settings | None = None,
+) -> TicketOutcome:
+    trace = WorkflowTrace(settings)
+    foundry = FoundryClient(settings) if settings and settings.foundry_enabled else None
+    deployment = settings.foundry_embedding_deployment if settings else None
+    hosted = FoundryEmbeddings(foundry, deployment) if foundry and deployment else None
+
+    @trace.node
     def order_agent(state: WorkflowState) -> dict[str, object]:
         payload = TicketInput.model_validate(state["input"])
         if payload.order_id is None or payload.intent == "other":
@@ -111,18 +135,46 @@ def run_ticket(engine: Engine, checkpointer: PostgresSaver, ticket: Ticket) -> T
                 return {"order": None}
         return {"order": order.model_dump(mode="json")}
 
+    @trace.node
     def policy_agent(state: WorkflowState) -> dict[str, object]:
         payload = TicketInput.model_validate(state["input"])
         query = POLICY_QUERIES.get(payload.intent)
         if query is None:
             return {}
         with Session(engine) as session:
-            evidence = search_policies(session, query[1])
+            try:
+                evidence = search_policies(session, query[1], hosted=hosted)
+            except FoundryError:
+                LOGGER.warning("Hosted policy search failed; using offline policy retrieval")
+                evidence = search_policies(session, query[1])
+            else:
+                if hosted and not evidence.excerpts:
+                    evidence = search_policies(session, query[1])
         return {"evidence": evidence.model_dump(mode="json")}
 
+    @trace.node
     def decision_agent(state: WorkflowState) -> dict[str, object]:
-        return {"outcome": evaluate_ticket(state, ticket).model_dump(mode="json")}
+        outcome = evaluate_ticket(state, ticket)
+        intent = TicketInput.model_validate(state["input"]).intent
+        can_draft = outcome.status == "awaiting_approval" or (
+            outcome.status == "completed" and intent == "status"
+        )
+        if foundry and can_draft and outcome.order and outcome.evidence:
+            # Fixed facts only. Customer text, aliases, order IDs and secrets stay local.
+            facts: dict[str, object] = {
+                "intent": intent,
+                "order_status": outcome.order.status,
+                "workflow_status": outcome.status,
+            }
+            try:
+                outcome.draft = foundry.draft(
+                    facts, {excerpt.citation: excerpt.content for excerpt in outcome.evidence}
+                )
+            except FoundryError:
+                LOGGER.warning("Hosted response draft unavailable; verified response retained")
+        return {"outcome": outcome.model_dump(mode="json")}
 
+    @trace.node
     def operator_approval(state: WorkflowState) -> dict[str, object]:
         outcome = TicketOutcome.model_validate(state["outcome"])
         decision = interrupt(outcome.model_dump(mode="json"), response_schema=OperatorDecision)
@@ -130,11 +182,13 @@ def run_ticket(engine: Engine, checkpointer: PostgresSaver, ticket: Ticket) -> T
             raise ValueError("Approval does not match the checkpointed proposal")
         return {"decision": decision.model_dump(mode="json")}
 
+    @trace.node
     def apply_decision(state: WorkflowState) -> dict[str, object]:
         outcome = TicketOutcome.model_validate(state["outcome"])
         decision = OperatorDecision.model_validate(state["decision"])
         if outcome.proposal is None or decision.proposal_id != outcome.proposal_id:
             raise ValueError("Approval is missing or no longer matches the proposal")
+        outcome.draft = None
         if not decision.approved:
             outcome.status = "rejected"
             outcome.response = "The operator rejected the proposed action."
@@ -174,22 +228,31 @@ def run_ticket(engine: Engine, checkpointer: PostgresSaver, ticket: Ticket) -> T
     builder.add_edge("apply_decision", END)
     graph = builder.compile(checkpointer=checkpointer)
     config: RunnableConfig = {"configurable": {"thread_id": str(ticket.run_id)}}
-    checkpoint = graph.get_state(config)
-    if not checkpoint.values:
-        state = graph.invoke(
-            {
-                "ticket_id": str(ticket.id),
-                "customer_id": ticket.customer_id,
-                "input": ticket.input,
-            },
-            config,
-            durability="sync",
-        )
-    elif checkpoint.interrupts and ticket.decision is not None:
-        state = graph.invoke(Command(resume=ticket.decision), config, durability="sync")
-    elif checkpoint.next and not checkpoint.interrupts:
-        state = graph.invoke(None, config, durability="sync")
-    else:
-        # Projection may have failed after a checkpoint was already saved.
-        state = checkpoint.values
-    return TicketOutcome.model_validate(state["outcome"])
+    status = "failed"
+    try:
+        # Suppress automatic tracing of raw graph state, including when ambient
+        # LangSmith variables are set. Only the allowlisted trace is published.
+        with tracing_context(enabled=False):
+            checkpoint = graph.get_state(config)
+            if not checkpoint.values:
+                state = graph.invoke(
+                    {
+                        "ticket_id": str(ticket.id),
+                        "customer_id": ticket.customer_id,
+                        "input": ticket.input,
+                    },
+                    config,
+                    durability="sync",
+                )
+            elif checkpoint.interrupts and ticket.decision is not None:
+                state = graph.invoke(Command(resume=ticket.decision), config, durability="sync")
+            elif checkpoint.next and not checkpoint.interrupts:
+                state = graph.invoke(None, config, durability="sync")
+            else:
+                # Projection may have failed after a checkpoint was already saved.
+                state = checkpoint.values
+        outcome = TicketOutcome.model_validate(state["outcome"])
+        status = outcome.status
+        return outcome
+    finally:
+        trace.publish(status)

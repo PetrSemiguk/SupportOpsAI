@@ -10,9 +10,10 @@ from sqlalchemy import Float, String, Text, delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
+from supportops.foundry import VECTOR_DIMENSIONS, FoundryEmbeddings
 from supportops.retail import RetailBase
 
-DIMENSIONS = 256
+DIMENSIONS = VECTOR_DIMENSIONS
 POLICY_FILE = Path("data/policies/retail.md")
 OFFLINE_MODEL = "offline-token-hash-v1"
 MIN_SIMILARITY = 0.22
@@ -81,7 +82,11 @@ class OfflinePolicyEmbeddings(Embeddings):
         return [self.embed_query(text) for text in texts]
 
 
-def index_policy(session: Session, path: Path = POLICY_FILE) -> int:
+def index_policy(
+    session: Session,
+    path: Path = POLICY_FILE,
+    hosted: FoundryEmbeddings | None = None,
+) -> int:
     content = path.read_text(encoding="utf-8")
     # Hash normalized text so checkout line endings do not affect citations.
     revision = sha256(content.encode()).hexdigest()
@@ -89,6 +94,7 @@ def index_policy(session: Session, path: Path = POLICY_FILE) -> int:
     if not sections:
         raise ValueError("Policy has no titled sections with citation identifiers")
     document = path.as_posix()
+    model_id = hosted.model_id if hosted else OFFLINE_MODEL
     rows = []
     for index, section in enumerate(sections):
         end = sections[index + 1].start() if index + 1 < len(sections) else len(content)
@@ -99,7 +105,7 @@ def index_policy(session: Session, path: Path = POLICY_FILE) -> int:
             {
                 "document": document,
                 "section_id": section[2],
-                "model_id": OFFLINE_MODEL,
+                "model_id": model_id,
                 "title": section[1],
                 "content": excerpt,
                 "revision": revision,
@@ -107,7 +113,7 @@ def index_policy(session: Session, path: Path = POLICY_FILE) -> int:
         )
     if len({row["section_id"] for row in rows}) != len(rows):
         raise ValueError("Policy section identifiers must be unique")
-    embeddings = OfflinePolicyEmbeddings().embed_documents(
+    embeddings = (hosted or OfflinePolicyEmbeddings()).embed_documents(
         [f"{row['title']} {row['content']}" for row in rows]
     )
     statement = insert(PolicySection).values(
@@ -129,27 +135,48 @@ def index_policy(session: Session, path: Path = POLICY_FILE) -> int:
     session.execute(
         delete(PolicySection).where(
             PolicySection.document == document,
-            PolicySection.model_id == OFFLINE_MODEL,
+            PolicySection.model_id == model_id,
             PolicySection.section_id.not_in([row["section_id"] for row in rows]),
         )
     )
     return len(rows)
 
 
-def search_policies(session: Session, query: str, limit: int = 3) -> PolicySearchResult:
-    embedding = OfflinePolicyEmbeddings().embed_query(query)
-    result = PolicySearchResult(embedding_model=OFFLINE_MODEL, excerpts=[])
+def search_policies(
+    session: Session,
+    query: str,
+    limit: int = 3,
+    hosted: FoundryEmbeddings | None = None,
+) -> PolicySearchResult:
+    model_id = hosted.model_id if hosted else OFFLINE_MODEL
+    result = PolicySearchResult(embedding_model=model_id, excerpts=[])
+    if not query.strip():
+        return result
+    if (
+        hosted
+        and session.scalar(
+            select(PolicySection.section_id)
+            .where(
+                PolicySection.model_id == model_id,
+            )
+            .limit(1)
+        )
+        is None
+    ):
+        # Require a deliberate index build before incurring a hosted query.
+        return result
+    embedding = (hosted or OfflinePolicyEmbeddings()).embed_query(query)
     if not any(embedding):
         return result
     distance = PolicySection.embedding.op("<=>", return_type=Float)(embedding)
     statement = (
         select(PolicySection, distance)
-        .where(PolicySection.model_id == OFFLINE_MODEL, distance <= 1 - MIN_SIMILARITY)
+        .where(PolicySection.model_id == model_id, distance <= 1 - MIN_SIMILARITY)
         .order_by(distance, PolicySection.document, PolicySection.section_id)
     )
     query_terms = terms(query)
     for section, score_distance in session.execute(statement):
-        if not query_terms.intersection(terms(f"{section.title} {section.content}")):
+        if not hosted and not query_terms.intersection(terms(f"{section.title} {section.content}")):
             # An accidental hash collision is insufficient evidence.
             continue
         result.excerpts.append(
