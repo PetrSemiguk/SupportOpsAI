@@ -10,7 +10,7 @@ Each milestone ends with relevant verification, diff review, a local commit when
 - [x] M5. Added the React operator queue, ticket review, decisions and demo customer intake. Verified order status, cancellation and return in Chrome against the real Compose API, worker and PostgreSQL.
 - [x] M6. Imported and ran two authenticated n8n workflows in Compose. Verified intake replay, conflict responses, scheduled notification acknowledgements and separate credential references.
 - [x] M7. Added opt-in Foundry and LangSmith integrations and ran 50 versioned scenarios against local PostgreSQL. Provider contracts were tested with doubles. Live checks require separate credentials and budget.
-- [ ] M8. Prepare Bicep, container publishing/deployment workflow definitions with manual triggers, monitoring and operational instructions. Validate templates locally. Real resource creation remains a separately authorized milestone.
+- [x] M8. Prepared and compiled Azure Bicep, manual image publishing and deployment workflows, monitoring and an operational runbook. Tested release sequencing with doubles and verified local container compatibility. Live provisioning remains separate.
 - [ ] M9. Run end-to-end acceptance, resolve defects, complete README/demo instructions and audit local commit metadata. Report the exact readiness level and remaining external prerequisites.
 
 ## Later scope

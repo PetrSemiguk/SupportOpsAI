@@ -133,6 +133,13 @@ LangSmith is separately opt-in. Set `SUPPORTOPS_LANGSMITH_ENABLED`,
 recreate the worker. Published traces contain fixed workflow and step names,
 timestamps and statuses. Raw graph inputs and outputs stay local.
 
+## Azure demo configuration
+
+The [Azure runbook](infra/README.md) covers Bicep validation, manually publishing
+images to Azure Container Registry, deploying to Container Apps and configuring
+the optional n8n VM. Live deployment requires an authorized Azure subscription,
+credentials and budget.
+
 ## Backend development
 
 Use Python 3.12 and uv. Copy `.env.example` to `.env` for host-based development,

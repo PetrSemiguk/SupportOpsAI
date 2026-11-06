@@ -1,0 +1,46 @@
+name: Deploy Azure demo
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag from a successful Publish Azure images run
+        required: true
+        type: string
+      seed_demo_data:
+        description: Import pinned synthetic retail orders, typically on the first deployment
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: supportops-azure-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: azure-deploy
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      SEED_DEMO_DATA: ${{ inputs.seed_demo_data }}
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      NAME_PREFIX: ${{ vars.AZURE_NAME_PREFIX }}
+      REGISTRY: ${{ vars.AZURE_REGISTRY_NAME }}
+      VAULT: ${{ vars.AZURE_VAULT_NAME }}
+      ALERT_ACTION_GROUP_ID: ${{ vars.AZURE_ALERT_ACTION_GROUP_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Install Bicep
+        run: az bicep install --version v0.48.1
+      - name: Migrate and deploy
+        run: bash infra/deploy.sh

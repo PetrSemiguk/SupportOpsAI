@@ -8,6 +8,18 @@ permissions:
   contents: read
 
 jobs:
+  infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: az bicep install --version v0.48.1
+      - name: Compile Azure templates
+        run: |
+          for template in infra/*.bicep; do
+            az bicep build --file "$template" --stdout > /dev/null
+          done
+      - run: bash -n infra/deploy.sh
+
   backend:
     runs-on: ubuntu-latest
     services:

@@ -87,3 +87,14 @@ Proceed with M7. Add configurable Foundry generation and embedding adapters, red
 - `alembic upgrade head`, `alembic check`, checkpoint setup, Ruff, mypy, frontend lint/build and all 33 pytest tests passed. API tests verified customer isolation and removal of an approval draft after rejection. The hosted-index test used provider doubles and real pgvector.
 - Compose built and started the services with hosted integrations disabled. The web, API and n8n readiness routes returned HTTP 200. A live local n8n smoke test verified intake authorization, replay, conflict handling and scheduled completion acknowledgement.
 - Next executable step is M8. Prepare and locally validate Azure Bicep and manual deployment workflows without provisioning Azure resources.
+
+## M8 verification — 2026-11-06
+
+- Starting checkpoint `0c6c559` matched the tracking branch. Added a resource-group foundation with Azure Container Apps, private PostgreSQL 17 with pgvector, ACR, Key Vault and Log Analytics. Service Bus and Blob Storage are opt-in resources reserved for later integrations. The queue stays in PostgreSQL.
+- Added a public web/API app with same-origin loopback proxying, a worker without ingress, a manual migration job, restart alerts and an optional n8n VM with an operator-only SSH tunnel. The Azure demo shares a dedicated database owner credential for migrations and runtime.
+- Added manually dispatched publishing and deployment workflows with separate OIDC identities. Deployment resolves images by digest, waits for the specific migration execution and checks the latest app revisions and HTTPS readiness. The Azure runbook documents prerequisites, optional demo seeding, n8n setup, monitoring and rollback.
+- Bicep CLI 0.48.1 compiled all five templates. actionlint 1.7.12 and Bash syntax checks passed. A local script with Azure CLI and HTTP doubles verified the success path, deployment prevention after a failed migration, and tag validation before any Azure operation.
+- Executed the compiled migration commands in the local backend container against a dedicated PostgreSQL database. Migrations and checkpoint setup succeeded, four policy sections were indexed and 24 pinned synthetic orders were seeded. Local Compose readiness and the loopback proxy topology returned HTTP 200. The optional n8n Compose configuration parsed successfully.
+- Ruff, mypy, frontend lint/build and all 33 pytest tests passed. The local n8n smoke test verified intake authorization and replay, conflicting requests and scheduled acknowledgements.
+- Azure-side ARM validation, image publishing, RBAC/DNS and cloud runtime checks require a configured subscription, credentials and approved budget. The GitHub release workflows were validated locally and have not been dispatched.
+- Next executable step is M9. Run final local end-to-end acceptance and audit the documented readiness and Git commit metadata.
